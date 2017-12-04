@@ -15,8 +15,6 @@
 
 defined( 'ABSPATH' ) or exit;
 
-
-
 /**
  * Change currency to USD before checking out.
  * @since 1.0
@@ -112,22 +110,3 @@ function pmpro_convert_amount_usd( $amount ){
 
 	return $amount * $conversion_rate;
 }
-
-function yolo_andy_swag( ){
-	global $pmpro_currency;
-
-	// Bail if already in USD
-	if( $pmpro_currency == 'USD' ){
-		return;
-	}
-
-	// Check for 1 local currency.
-	$amount = pmpro_convert_amount_usd( 1 );
-	?>
-	<tr>
-		<td><strong><?php _e( 'Conversion Rate:', 'pmpro-convert-to-usd' ); ?></strong></td>
-		<td><?php echo "1 USD = " . round( 1 / $amount, 2 ) . ' ' . $pmpro_currency; ?></td>
-	</tr>
-	<?php
-}
-add_action( 'pmpro_payment_settings_after_tax', 'yolo_andy_swag' );
