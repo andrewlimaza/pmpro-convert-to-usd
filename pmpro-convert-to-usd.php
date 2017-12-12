@@ -95,6 +95,64 @@ function pcc_show_usd_cost_text_value( $cost, $level ){
 
 add_filter( 'pmpro_level_cost_text', 'pcc_show_usd_cost_text_value', 20, 2 );
 
+
+function pcc_after_checkout( $user_id, $morder ) {
+
+	global $wpdb;
+
+	$amount = pcc_convert_amount_usd( 1 );
+	$amount = round( 1 / $amount, 2 );
+
+	// Update the order
+	if( !empty( $morder->InitialPayment ) ) {
+		$morder->InitialPayment = strval( round( $morder->InitialPayment * $amount, 2 ) );	
+	}
+
+	if( !empty( $morder->PaymentAmount ) ) {
+		$morder->PaymentAmount = strval( round( $morder->PaymentAmount * $amount, 2 ) );
+	}
+	
+	if( !empty( $morder->subtotal ) ) {
+		$morder->subtotal = strval( round( $morder->subtotal * $amount, 2 ) );
+	}
+
+	if( !empty( $morder->total ) ) {
+		$morder->total = strval( round( $morder->total * $amount, 2 ) );
+	}
+
+	$morder->notes = "Exchange Rate: " . round( $amount, 2 ) ;
+	$morder->saveOrder();
+
+	// Change back the level amounts to local currency
+	$level = pmpro_getMembershipLevelForUser( $user_id ); 
+
+	if( !empty( $level->initial_payment ) ) {
+		$level->initial_payment = strval( round( $level->initial_payment * $amount, 1 ) );
+	}else{
+		$level->initial_payment = '0.00';
+	}
+
+	if( !empty( $level->billing_amount ) ) {
+		$level->billing_amount = strval( round( $level->billing_amount * $amount, 1 ) );
+	}else{
+		$level->billing_amount = '0.00';
+	}
+
+	// Update level initial and billing amounts back to local amounts.
+	$update_level = $wpdb->query( $wpdb->prepare(
+		"UPDATE $wpdb->pmpro_memberships_users
+		SET initial_payment = %s, billing_amount = %s
+		WHERE user_id = %d
+		AND status = 'active'",
+		$level->initial_payment,
+		$level->billing_amount,
+		$user_id
+	));
+
+}
+
+add_action( 'pmpro_after_checkout', 'pcc_after_checkout', 10, 2 );
+
 /**
  * Function that converts the amount to USD
  * @uses https://api.fixer.io
